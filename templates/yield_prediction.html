@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yield Predition</title>
+    <!--Import Google Icon Font-->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <!-- Compiled and minified CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@materializecss/materialize@1.1.0/dist/css/materialize.min.css">
+    <!-- Compiled and minified JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/@materializecss/materialize@1.1.0/dist/js/materialize.min.js"></script>
+    <link rel="icon" type="image/png" href="/static/favicon.png" />
+</head>
+<body style="background-image: url(/static/yield_prediction_background_with_opacity.png);">
+    <div style="text-align: center; margin-right: 5%; margin-left: 5%;">
+        <h2>Yield Predition</h2>
+        
+        <div class="input-field" style="display: inline-block; width: 24%">
+            <select>
+                <option value="" disabled selected>Choose your crop</option>
+                {% for crop in crops %}
+                    <option value="{{ crop }}">{{ crop }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="input-field" style="display: inline-block; width: 24%">
+            <input id="avg_rainfall" type="text">
+            <label for="avg_rainfall">Irrigation in mm per year</label>
+        </div>
+        <div class="input-field" style="display: inline-block; width: 24%">
+            <input id="pesticides" type="text">
+            <label for="pesticides">Pesticides in Metric Tons</label>
+        </div>
+        <div class="input-field" style="display: inline-block; width: 24%">
+            <input id="avg_temp" type="text">
+            <label for="avg_temp">Average Temperature in Celcius</label>
+        </div>
+        <br>
+        <p id="yield_output"></p>
+        <br>
+        <a class="waves-effect waves-light btn" onclick="predictYield()">Predict Yield</a>
+        <br>
+        <br>
+        <br>
+        <a class="waves-effect waves-light btn" href="/">Home</a>
+        <a class="waves-effect waves-light btn" href="/disease_detection">Crop Disease Detection</a>
+    </div>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            var elems = document.querySelectorAll("select");
+            var instances = M.FormSelect.init(elems);
+        });
+
+        function predictYield() {
+            var crop = document.querySelector("select").value;
+            var avg_rainfall = document.getElementById("avg_rainfall").value;
+            var pesticides = document.getElementById("pesticides").value;
+            var avg_temp = document.getElementById("avg_temp").value;
+            if (crop === "") {
+                M.toast({text: "Please select a crop"});
+                return;
+            }
+            if (avg_rainfall === "") {
+                M.toast({text: "Please enter an irrigation level"});
+                return;
+            }
+            if (pesticides === "") {
+                M.toast({text: "Please enter an amount of pesticides used"});
+                return;
+            }
+            if (avg_temp === "") {
+                M.toast({text: "Please enter the average temperature"});
+                return;
+            }
+            avg_rainfall = parseFloat(avg_rainfall);
+            pesticides = parseFloat(pesticides);
+            avg_temp = parseFloat(avg_temp);
+            if (isNaN(avg_rainfall)) {
+                M.toast({text: "Please enter a valid irrigation level"});
+                return;
+            }
+            if (isNaN(pesticides)) {
+                M.toast({text: "Please enter a valid amount of pesticides used"});
+                return;
+            }
+            if (isNaN(avg_temp)) {
+                M.toast({text: "Please enter a valid average temperature"});
+                return;
+            }
+            fetch("/api/v1/yield_prediction", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    crop: crop,
+                    avg_rainfall: avg_rainfall,
+                    pesticides: pesticides,
+                    avg_temp: avg_temp
+                }),
+            })
+            .then(response => response.json())
+            .then(response => {
+                document.getElementById("yield_output").innerHTML = `The predicted yield is ${response.yield} HG/HA`;
+            })
+            fetch("/api/v1/yield_optimizer", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    crop: crop,
+                    avg_rainfall: avg_rainfall,
+                    pesticides: pesticides,
+                    avg_temp: avg_temp
+                }),
+            })
+            .then(response => response.json())
+            .then(response => {
+                var yield_output = document.getElementById("yield_output");
+                yield_output.innerHTML += `<br>If the irrigation was increased by 100 mm, the yield would be ${response.increase_avg_rainfall_by_100} HG/HA`;
+                yield_output.innerHTML += `<br>If the pesticide usage was increased by 50 metric tons, the yield would be ${response.increase_pesticides_by_50_data} HG/HA`
+                yield_output.innerHTML += `<br>If the pesticide usage was increased by 100 metric tons, the yield would be ${response.increase_pesticides_by_100_data} HG/HA`
+            });
+        }
+    </script>
+</body>
+</html>

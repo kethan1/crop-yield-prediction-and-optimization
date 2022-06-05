@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Disease Detection</title>
+    <!-- Compiled and minified CSS -->
+    <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/@materializecss/materialize@1.1.0/dist/css/materialize.min.css">
+    <!-- Compiled and minified JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/@materializecss/materialize@1.1.0/dist/js/materialize.min.js"></script>
+    <link rel="icon" type="image/png" href="/static/favicon.png" />
+</head>
+
+<body style="background-image: url(/static/disease_detection_background_with_opacity.png);">
+    <div style="text-align: center; margin-right: 10%; margin-left: 10%;">
+        <h2>Disease Detection</h2>
+        <div class="file-field input-field" style="background-color:rgba(0, 0, 0, 0);">
+            <div class="btn">
+                <span>File</span>
+                <input id="file_input" type="file">
+            </div>
+            <div class="file-path-wrapper">
+                <input class="file-path validate" type="text">
+            </div>
+        </div>
+        <div class="input-field" style="background-color:rgba(0, 0, 0, 0);">
+            <select>
+                <option value="" disabled selected>Choose your crop</option>
+                <option value="pepper">Bell Pepper</option>
+                <option value="potato">Potato</option>
+                <option value="tomato">Tomato</option>
+            </select>
+        </div>
+        <br>
+        <p id="results"></p>
+        <br>
+        <a class="waves-effect waves-light btn" onclick="predictDisease()">Predict Disease</a>
+        <br>
+        <br>
+        <br>
+        <a class="waves-effect waves-light btn" href="/">Home</a>
+        <a class="waves-effect waves-light btn" href="/yield_prediction">Crop Yield Predictor</a>
+    </div>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            var elems = document.querySelectorAll("select");
+            var instances = M.FormSelect.init(elems);
+        });
+
+        function predictDisease() {
+            var crop = document.querySelector("select").value;
+            var file = document.getElementById("file_input").files[0];
+            console.log(crop)
+            console.log(file)
+
+            if (!crop) {
+                M.toast({text: "Please select a crop"});
+            }
+            if (!file) {
+                M.toast({text: "Please select a file"});
+            }
+            
+            var formData = new FormData();
+            formData.append("crop", crop);
+            formData.append("image", file);
+
+            fetch("/api/v1/disease_detection", {
+                method: "POST",
+                body: formData,
+            })
+            .then(response => response.json())
+            .then(response => {
+                console.log(response);
+                if (response.disease_detected === "healthy") {
+                    document.getElementById("results").innerHTML = `Your ${crop} crop is healthy!`;
+                } else {
+                    document.getElementById("results").innerHTML = `Your ${crop} crop might have ${response.disease_detected.replace("_", " ")}.`;
+                }                
+            });
+        }
+    </script>
+</body>
+
+</html>
